@@ -27,7 +27,7 @@ def cyclic_redundancy_check(filename: str, divisor: str, len_crc: int) -> int:
             rem = rem << 1 
             rem[-1] = cw[i]
     #retorna el residuo
-    return rem[len_p-len_crc : len_p]
+    return rem[len_p-len_crc : len_p] #CRC
 
 
 def codificador(filename: str, divisor: str, len_crc: int):
@@ -37,8 +37,7 @@ def codificador(filename: str, divisor: str, len_crc: int):
     filename: el archivo contenedor de texto
     codigo: CRC"""
 
-
-    crc = cyclic_redundancy_check('test.txt', '11111', 4)
+    crc = cyclic_redundancy_check(filename, divisor, len_crc)
 
     bin_file = bitarray()
     
@@ -52,18 +51,16 @@ def codificador(filename: str, divisor: str, len_crc: int):
 
 def generador_de_errores(codigo : str, n : int, seed : int): 
     
-
     """Este módulo se encarga de generar una rafaga de tamaño n
     De los n bits que mide la rafaga, solo 'e' serán invertidos
     Retorna el código de entrada, pero corrompido"""
 
-    aux = Generator(MT19937(seed + 432433212))
+    aux = Generator(MT19937(seed + 71771)) #modificar la semilla para conseguir resultados diferentes
 
-    #e = int(aux.integers(2, n-1))
-    e = n - 3
+    e = int(aux.integers(0, n-1))# "e" es el número de errores que cambiaran
     
-    codigo[seed] = not codigo[seed]
-    codigo[seed+n-1] = not codigo[seed+n]
+    codigo[seed] = not codigo[seed]   #Invetir el primer bit de la rafaga
+    codigo[seed+n] = not codigo[seed+n]  #Invertir el ultimo bit de la rafaga
     pos_e = []
 
     """for que determina la posición de 
@@ -73,11 +70,10 @@ def generador_de_errores(codigo : str, n : int, seed : int):
         if pos not in pos_e:
             pos_e.append(pos)
     
-    #print("antes", codigo)
     """for que modifica los bits de las posiciones pos_e"""
     for i in pos_e:   
         codigo[i+seed] = not codigo [i+ seed]
-    #print("despues", codigo)
+
     return codigo
 
 
@@ -85,8 +81,7 @@ def generador_de_errores(codigo : str, n : int, seed : int):
 
 def descodificador(bin_file : str , divisor: str, len_crc: int):
 
-    """"
-    Esta función permite decodificar un arreglo de caracteres 
+    """"Esta función permite decodificar un arreglo de caracteres 
     calculando por medio de una división agregando al dividendo el CRC al final
     filename: el archivo contenedor de texto
     divisor : divisor
@@ -105,7 +100,7 @@ def descodificador(bin_file : str , divisor: str, len_crc: int):
             rem = rem << 1 
             rem[-1] = cw[i]
     #retorna el residuo
-    return rem[len_p-len_crc : len_p]
+    return rem[len_p-len_crc : len_p] #CRC
 
 
 
@@ -126,17 +121,13 @@ def validador(filename: str, polinomio: str, len_crc: int, n : int, seed : int):
     """
     res = False
 
-
-
     codigo_codificado = codificador(filename, polinomio, len_crc)
+    
     codigo_corrompido = generador_de_errores(codigo_codificado, n, seed)
+    
     codigo_decodificado = descodificador(codigo_corrompido, polinomio, len_crc)
 
-    #codigo_decodificado = descodificador(codigo_codificado, polinomio, len_crc, crc)
-    
-    #print ("codigo decodificado", codigo_decodificado)
-
-    comparacion = bitarray('0') * (len_crc)
+    comparacion = bitarray('0') * (len_crc) #"0000"
 
     if(codigo_decodificado == comparacion):
         #print("comparacion", comparacion)
@@ -148,19 +139,20 @@ def validador(filename: str, polinomio: str, len_crc: int, n : int, seed : int):
 
 
 def main():
-
     contador = 0
-
     r = 4
     n = int(sys.argv[1])
+    print("El valor de r (longitud del crc) es igual a: ", r)
+    print("El valor de n (tamaño de la rafaga de error) es igual a: ", n)
+    divisor = '11111'
+    repeticiones = 1000
 
-    polinomio = '11111'
-
-    for i in range (0, 1000):
-        if (validador('HarryPotter.txt', polinomio, r, n, i) == False):
+    for i in range (0, repeticiones):
+        if (validador('HarryPotter.txt', divisor, r, n, i)  == False):
             contador += 1
 
-    print ("\n\nErrores encontrados", contador, "\n\n")
+    print ("\nErrores encontrados\n", contador)
+    print("\nProbabilidad de encontrar un error:\n", contador/repeticiones)
 
 
 
